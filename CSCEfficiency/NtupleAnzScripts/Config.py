@@ -2,8 +2,8 @@
 # User Specifications  #
 ########################
 RunOnMC=False
-RunOnNewAlign=True
-RunLCTeff=False
+#RunOnNewAlign=True
+#RunLCTeff=False
 Resonance="Z"#options are "Z","JPsi"
 #Group="Chambers"#options are "Chambers","Stations","pt","eta","phi","Stationspt","Stationseta","Stationsphi"
 Group="Stationseta"#options are "Chambers","Stations","pt","eta","phi","Stationspt","Stationseta","Stationsphi"
@@ -30,16 +30,16 @@ import math
 #import ROOT as root
 dir_=os.getcwd().split("/")[-1]
 TagProbeFitResult="TnP_"+dir_+"_"#Those files are the TagProbeFitTreeAnalyzer outputs.
-if RunOnNewAlign:
-  print "using NEW ALIGN: OUTPUT TO: 2015B_newAlign/"
-  TagProbeFitResult="2015B_newAlign/TnP_"+dir_+"_"#Those files are the TagProbeFitTreeAnalyzer outputs.
-  if RunLCTeff:
-      print "using NEW ALIGN: OUTPUT TO: 2015B_newAlign_LCT/"
-      TagProbeFitResult="2015B_newAlign_LCT/TnP_"+dir_+"_"#Those files are the TagProbeFitTreeAnalyzer outputs.
+#if RunOnNewAlign:
+#  print "using NEW ALIGN: OUTPUT TO: 2015B_newAlign/"
+#  TagProbeFitResult="2015B_newAlign/TnP_"+dir_+"_"#Those files are the TagProbeFitTreeAnalyzer outputs.
+#  if RunLCTeff:
+#      print "using NEW ALIGN: OUTPUT TO: 2015B_newAlign_LCT/"
+#      TagProbeFitResult="2015B_newAlign_LCT/TnP_"+dir_+"_"#Those files are the TagProbeFitTreeAnalyzer outputs.
 
-else:
-  TagProbeFitResult="2015B_oldAlign/TnP_"+dir_+"_"#Those files are the TagProbeFitTreeAnalyzer outputs.
-  print "using OLD ALIGN: OUTPUT TO: 2015B_oldAlign/"
+#else:
+#  TagProbeFitResult="2015B_oldAlign/TnP_"+dir_+"_"#Those files are the TagProbeFitTreeAnalyzer outputs.
+#  print "using OLD ALIGN: OUTPUT TO: 2015B_oldAlign/"
 
 ResultPlotsFileName="resultplots_"+dir_+".root"#This is the file name of the final result. The path will be Prefix+ResultPlotsFileName. Prefix is the input argument of the Step2_PlotAll.py.
 TemporaryOutputFile="/tmp/Tmp_"+dir_+".root"#New branches will be added to the orginal tree and saved in this file. The size is about the same with input file size.

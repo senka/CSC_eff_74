@@ -105,8 +105,8 @@ if (sys.argv[0] == "python"): args=sys.argv[2:]
 else: args=sys.argv[1:]
 
 #Prefix="/scratch/senka/CSCeff_condor_RunC_matching/"
-Prefix="/afs/hep.wisc.edu/cms/senka/CMSSW_7_4_7/src/CSCEfficiency/CSCEfficiency/NtupleAnzScripts/"
-Postfix=""
+#Prefix="/afs/hep.wisc.edu/cms/senka/CMSSW_7_4_7/src/CSCEfficiency/CSCEfficiency/NtupleAnzScripts/"
+#Postfix=""
 print "TagAndProbeFitResult: ",TagProbeFitResult
 #TagProbeFitResult=TagProbeFitResult.split("/")[-1]
 ResultPlotsFileName=ResultPlotsFileName.split("/")[-1]
