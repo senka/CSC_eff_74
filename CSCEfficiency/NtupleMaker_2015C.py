@@ -3,14 +3,10 @@ import FWCore.ParameterSet.Config as cms
 process = cms.Process("RECO")
 
 process.source = cms.Source("PoolSource",
-#    fileNames = cms.untracked.vstring('/store/data/Run2015B/SingleMuon/RAW/v1/000/252/116/00000/A403ACE8-8F2E-E511-B3D6-02163E0138B3.root')
-#    fileNames = cms.untracked.vstring('/store/data/Run2015B/SingleMuon/RAW/v1/000/251/781/00000/965CB01F-9A2A-E511-86EC-02163E0129DA.root')
-#    fileNames = cms.untracked.vstring('/store/data/Run2015B/SingleMuon/RAW/v1/000/251/883/00000/6855C3AE-7C2B-E511-879C-02163E013830.root')
-fileNames = cms.untracked.vstring($inputFileNames)
-#    fileNames = cms.untracked.vstring(
-#'/store/data/Run2015B/SingleMuon/RAW/v1/000/251/162/00000/0050EEC0-AD25-E511-9A32-02163E011962.root'
-#)
 #fileNames = cms.untracked.vstring($inputFileNames)
+    fileNames = cms.untracked.vstring(
+     '/store/data/Run2015D/SingleMuon/RAW/v1/000/257/613/00000/080CED08-7C65-E511-A02F-02163E0143FB.root'
+    )
 )
 
 process.maxEvents = cms.untracked.PSet(
