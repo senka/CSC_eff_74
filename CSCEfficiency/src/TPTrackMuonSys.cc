@@ -236,7 +236,9 @@ TPTrackMuonSys::TPTrackMuonSys(const edm::ParameterSet& Conf) : theDbConditions(
     MakeBranchAllSt("N_seg_inChamber","I",N_seg_inChamber);
 
     /*Distance from the Extrapolated Tracks to LCT, 99999. for no LCT found*/
+    MakeBranchAllSt("CSCLCTStripNo","F",CSCLCTStripNo);
     MakeBranchAllSt("CSCDxTTLCT","F",CSCDxTTLCT);
+
     MakeBranchAllSt("CSCDxErrTTLCT","F",CSCDxErrTTLCT);
     MakeBranchAllSt("CSCDyTTLCT","F",CSCDyTTLCT);
     MakeBranchAllSt("CSCDxErrTTLCT","F",CSCDxErrTTLCT);
@@ -379,7 +381,9 @@ TPTrackMuonSys::analyze(const edm::Event& event, const edm::EventSetup& setup){
 //  cout <<"   CSCLCT " << endl;
   edm::Handle<CSCCorrelatedLCTDigiCollection> mpclcts;
   try{
-    event.getByLabel("csctfunpacker","", mpclcts);
+//    event.getByLabel("csctfunpacker","", mpclcts);
+//    event.getByLabel("csctfDigis","",mpclcts);
+    event.getByLabel("muonCSCDigis","MuonCSCCorrelatedLCTDigi",mpclcts);
   }catch (cms::Exception){
     edm::LogError("")<< "Error! Can't get m_gTracksTag by label. ";
   }
@@ -658,6 +662,7 @@ TPTrackMuonSys::analyze(const edm::Event& event, const edm::EventSetup& setup){
 	Int_t dummy_bx=0.;
 //	cout <<"\t\t =======> LCTPos " << endl;
 	LocalPoint *LCTPos=matchTTwithLCTs( localL3pCSC.x(), localL3pCSC.y(), endcapCSC+1, stationCSC+1, ringCSC, chamberCSC+1, mpclcts, dRTrkLCT, dummy_bx);
+	//	double CSCLCTStripNo=getStripLCTNo( localL3pCSC.x(), localL3pCSC.y(), endcapCSC+1, stationCSC+1, ringCSC, chamberCSC+1, mpclcts, dRTrkLCT, dummy_bx);
 //	cout <<"\t\t ========> ... ok LCTPos " << endl;
 	if (LCTPos!=NULL) {
 	  if (dRTrkLCT<CloestDisTrkLCT[endcapCSC][stationCSC][ringCSC-1][chamberCSC]) {
@@ -1059,6 +1064,9 @@ TPTrackMuonSys::analyze(const edm::Event& event, const edm::EventSetup& setup){
 	CSCLCTbx[j] = -9999;
 	N_seg_inChamber[j]=-9999;
 	/*Distance from the Extrapolated Tracks to LCT, 9999. for no LCT found*/
+//        for (int jj=0;jj<2;j++)
+           CSCLCTStripNo[j] = -9999.;
+
 	CSCDxTTLCT[j] = -9999.;
 	CSCDxErrTTLCT[j] = -9999.;
 	CSCDyTTLCT[j] = -9999.;
@@ -1189,6 +1197,11 @@ TPTrackMuonSys::analyze(const edm::Event& event, const edm::EventSetup& setup){
 	  /* Save the difference between the ex-tracker track and the segment */
 	  const GeomDet* gdet=cscGeom->idToDet(id);
 	  LocalPoint localpCSC = gdet->surface().toLocal(TrajToSeg->freeState()->position());
+
+	  //	  cerr<<"segment found in :"<<localSegPos.y()<<"+-"<<CSCSegyErrLc[st]<<endl;	  
+	  //	  printf("\nSEGMENT FOUND IN: ME%d/%d, chamber %d, endcap %d \n",st+1,rg,CSCChCand[st], ec);
+	  //ec, st+1, rg,  CSCChCand[st], ly
+
 	  CSCDxTTSeg[st] = CSCSegxLc[st] - localpCSC.x(); 
 	  CSCDyTTSeg[st] = CSCSegyLc[st] - localpCSC.y(); 
 	  CSCDxyTTSeg[st] = sqrt(pow(CSCDxTTSeg[st],2)+pow(CSCDyTTSeg[st],2));
@@ -1224,6 +1237,7 @@ TPTrackMuonSys::analyze(const edm::Event& event, const edm::EventSetup& setup){
 	  LocalPoint localL3pCSC = Layer3Surface.toLocal(tsos.freeState()->position());
 //	  cout <<" ok" << endl;
 	  LocalPoint *LCTPos=matchTTwithLCTs( localL3pCSC.x(), localL3pCSC.y(), CSCEndCapPlus?1:2, st+1, CSCRg[st], CSCChCand[st], mpclcts, CSCDxyTTLCT[st], CSCLCTbx[st]);
+	  //	  double CSCLCTStripNo=getStripLCTNo( localL3pCSC.x(), localL3pCSC.y(), CSCEndCapPlus?1:2, st+1, CSCRg[st], CSCChCand[st], mpclcts, CSCDxyTTLCT[st], CSCLCTbx[st]);
 	  if (LCTPos!=NULL) {
 	    CSCLCTxLc[st]=LCTPos->x();
 	    CSCLCTyLc[st]=LCTPos->y();
@@ -1669,6 +1683,115 @@ Bool_t TPTrackMuonSys::matchTTwithRPCEChit(Bool_t trackDir,
 LocalPoint * TPTrackMuonSys::matchTTwithLCTs(Float_t xPos, Float_t yPos, UChar_t ec, UChar_t st, UChar_t &rg, UChar_t cham, 
 					     edm::Handle<CSCCorrelatedLCTDigiCollection> mpclcts, Float_t &dRTrkLCT, Int_t &lctBX ) {
   LocalPoint *interSect=NULL;
+
+  //      printf("\ntrack: ME%d/%d, chamber %d, endcap %d \n",st,rg,cham, ec);
+  
+  for (CSCCorrelatedLCTDigiCollection::DigiRangeIterator detMPCUnitIt = mpclcts->begin(); 
+       detMPCUnitIt != mpclcts->end(); detMPCUnitIt++) {
+    //	printf( " ----> setting up id=(*detMPCUnitIt).first \n");
+
+    CSCDetId id = (*detMPCUnitIt).first;
+ 
+     
+    if(ec != id.endcap())continue;
+    if(st != id.station())continue;
+    if(cham != id.chamber())continue;
+    
+    //    printf(" -> looped LCT: ME%d/%d, chamber %d, endcap %d \n",id.station(),id.ring(),id.chamber(),id.endcap());
+
+    /*
+    if(ec == id.endcap() && st == id.station() && cham == id.chamber())
+      printf("  -> yes LCT is in the same chamber where track is passing! \n");
+    */
+    Bool_t ed1 = (st == 1) && ((rg == 1 || rg == 4) && (id.ring() == 1 || id.ring() == 4));
+    Bool_t ed2 = (st == 1) && ((rg == 2 && id.ring() == 2) || (rg == 3 && id.ring() == 3));
+    Bool_t ed3 = (st != 1) && (rg == id.ring());
+    if ( !(ed1 || ed2 || ed3) ) continue;
+
+    /*
+    if ( (ed1 || ed2 || ed3) )
+      printf("  -> yes ed1 || ed2 || ed3! ");
+      
+    printf(" ed1 %d, ed2 %d, ed3 %d\n",ed1,ed2,ed3 );
+    */
+
+    const CSCCorrelatedLCTDigiCollection::Range& MPCrange = (*detMPCUnitIt).second;
+    int N_LCT=0;
+    for (CSCCorrelatedLCTDigiCollection::const_iterator mpcIt = MPCrange.first; mpcIt != MPCrange.second; mpcIt++) {
+      Bool_t lct_valid = (*mpcIt).isValid();
+      if(!lct_valid)continue;
+      //In CSC offline/hlt software in general, is COUNT FROM ONE, such as CSCGeometry.
+      //However, the LCT software counts from zero. strip_id is from 0 to 159. wireGroup_id is from 0 to 31(ME13),47(ME11),63(ME1234/2),95(ME31,41),111(ME21). So here we need to plus one.
+      UChar_t wireGroup_id = (*mpcIt).getKeyWG()+1;
+      UChar_t strip_id=(*mpcIt).getStrip()/2+1;
+//      CSCLCTStripNo[st][N_LCT]=strip_id;
+//      CSCLCTStripNo[st]=strip_id;
+  //    printf( "ME%d/%d: %.1f/%d, %d/%d: xLCT-xTT=%.2f-%.2f; yLCT-yTT=%.2f-%.2f \n",st,id.ring(),strip_id,Nstrips,wireGroup_id,layerGeom->numberOfWireGroups(),interSect_.x(),xPos,interSect_.y(),yPos);
+
+      /*      
+      printf( "  N_LCT %d:  LCT ME%d/%d ch %d: strip_id: %.1d, wires: %d \n",N_LCT,id.station(),id.ring(),id.chamber(),strip_id,wireGroup_id);
+      if (strip_id>64 && id.station()==1 && id.ring()==1)
+	printf( "   ############## strip_id>64!!!!! \n");
+      */   
+
+      /*      
+    if(ec != id.endcap())continue;
+    if(st != id.station())continue;
+    if(cham != id.chamber())continue;
+    if ( !(ed1 || ed2 || ed3) ) continue;
+    //    printf( "       passing selection! \n");
+    */
+	
+
+      N_LCT++;	
+      //if ( id.ring()==4 ) cerr<<"Alert id.ring()==4"<<endl;
+      Bool_t me11=(st == 1) && (id.ring() == 1 || id.ring() == 4),
+	me11a = me11 && strip_id>64;
+      //me11b = me11 && strip_id<=64;
+      //http://cmssdt.cern.ch/SDT/lxr/source/CondFormats/CSCObjects/src/CSCChannelTranslator.cc
+      //Translate a raw strip channel in range 1-80, iraw,  into corresponding geometry-oriented channel in which increasing
+      //channel number <-> strip number increasing with +ve local x.
+      //However, the LCT firmwire has already done the number flipping but it numbers ME11B strips from  0 to 63, ME11A strips from 64-79. (confirmed by Slava)
+      //That is the reason we commented out the following number flipping codes.
+      if ( me11a ) {
+	strip_id-=64;
+	// The CSCCorrelatedLCTDigi DetId does NOT distinguish ME11A and B. All of the DetIDs are labelled as ME11B (all ME11, none ME14)
+	// However, stripWireGroupIntersection must know that since ME11A has 48 strips and ME11B has 64.
+	//	printf( "   it is ME11A ----> setting up id=CSCDetId(ec, 1, 4, cham, 3) \n");
+	// uncomment below!
+	id=CSCDetId(ec, 1, 4, cham, 3);
+	//if ( id.endcap()==1 ) strip_id=17-strip_id;
+      }
+      //if ( me11b && id.endcap()!=1 ) strip_id=65-strip_id;
+      const CSCLayerGeometry *layerGeom = cscGeom->chamber(id)->layer (3)->geometry ();
+      //      for(UChar_t ii = 0; ii < 3; ii++){
+	// if ( strip_id>64 ) LogWarning("Strip_id") << "Got "<<strip_id<<", but there are "<< Nstrips <<" strips in total." <<m_hlt.process();
+	LocalPoint interSect_ = layerGeom->stripWireGroupIntersection(strip_id, wireGroup_id);
+	//	printf( "ME%d/%d: %.1f/%d, %d/%d: xLCT-xTT=%.2f-%.2f; yLCT-yTT=%.2f-%.2f \n",st,id.ring(),strip_id,Nstrips,wireGroup_id,layerGeom->numberOfWireGroups(),interSect_.x(),xPos,interSect_.y(),yPos);
+	Float_t DeltaR_ = sqrt(pow((interSect_.x()-xPos),2) + pow((interSect_.y()-yPos),2));
+	if( DeltaR_ < fabs(dRTrkLCT) ) {
+	  delete interSect;
+	  interSect=new LocalPoint(interSect_);
+	  dRTrkLCT =  DeltaR_ ;
+	  lctBX = (*mpcIt).getBX();
+	  if (me11a) rg=4;
+	  else rg=id.ring();
+	  //cout << "1: BX = " << (*mpcIt).getBX() << " BX0 = " << (*mpcIt).getBX0() << std::endl;
+	} // for the matching if statement...
+        //	if (me11a) strip_id+=16;
+//	else break;
+//      break;
+      //      }// end iteration over of ME11A triplet
+    }// end iteration over lcts_mpc_data in one chamber
+  }// end iteration over lcts_mpc_data
+  return interSect;
+}
+
+/*
+//////////////  Get the matching with LCTs...
+double * TPTrackMuonSys::getStripLCTNo(Float_t xPos, Float_t yPos, UChar_t ec, UChar_t st, UChar_t &rg, UChar_t cham, 
+					     edm::Handle<CSCCorrelatedLCTDigiCollection> mpclcts, Float_t &dRTrkLCT, Int_t &lctBX ) {
+  LocalPoint *interSect=NULL;
   
   for (CSCCorrelatedLCTDigiCollection::DigiRangeIterator detMPCUnitIt = mpclcts->begin(); 
        detMPCUnitIt != mpclcts->end(); detMPCUnitIt++) {
@@ -1683,6 +1806,7 @@ LocalPoint * TPTrackMuonSys::matchTTwithLCTs(Float_t xPos, Float_t yPos, UChar_t
     Bool_t ed3 = (st != 1) && (rg == id.ring());
     if ( !(ed1 || ed2 || ed3) ) continue;
     const CSCCorrelatedLCTDigiCollection::Range& MPCrange = (*detMPCUnitIt).second;
+    int N_LCT=0;
     for (CSCCorrelatedLCTDigiCollection::const_iterator mpcIt = MPCrange.first; mpcIt != MPCrange.second; mpcIt++) {
       Bool_t lct_valid = (*mpcIt).isValid();
       if(!lct_valid)continue;
@@ -1690,6 +1814,10 @@ LocalPoint * TPTrackMuonSys::matchTTwithLCTs(Float_t xPos, Float_t yPos, UChar_t
       //However, the LCT software counts from zero. strip_id is from 0 to 159. wireGroup_id is from 0 to 31(ME13),47(ME11),63(ME1234/2),95(ME31,41),111(ME21). So here we need to plus one.
       UChar_t wireGroup_id = (*mpcIt).getKeyWG()+1;
       UChar_t strip_id=(*mpcIt).getStrip()/2+1;
+//      CSCLCTStripNo[st][N_LCT]=strip_id;
+      CSCLCTStripNo[st]=strip_id;
+
+      N_LCT++;	
       //if ( id.ring()==4 ) cerr<<"Alert id.ring()==4"<<endl;
       Bool_t me11=(st == 1) && (id.ring() == 1 || id.ring() == 4),
 	me11a = me11 && strip_id>64;
@@ -1728,8 +1856,9 @@ LocalPoint * TPTrackMuonSys::matchTTwithLCTs(Float_t xPos, Float_t yPos, UChar_t
       }// end iteration over of ME11A triplet
     }// end iteration over lcts_mpc_data in one chamber
   }// end iteration over lcts_mpc_data
-  return interSect;
+  return CSCLCTStripNo[st];
 }
+*/
 
 /*
 //////////////  Get the matching LCT with segments... // not done!
